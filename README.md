@@ -59,7 +59,7 @@ pytest tests/test_login.py -v
 ## Структура репозиторію
 
 ```
-HUB_login/
+tests_e2e_hub_xml/
 ├── tests-ts/           # TypeScript, Playwright — логін та XML-фіди
 │   ├── e2e/
 │   ├── playwright.config.ts

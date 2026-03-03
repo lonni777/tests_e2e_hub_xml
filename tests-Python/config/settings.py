@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Шлях до кореня репозиторію (HUB_login), щоб використовувати спільний .env
+# Шлях до кореня репозиторію (tests_e2e_hub_xml), щоб використовувати спільний .env
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Завантаження змінних з .env файлу в корені репозиторію (якщо він існує)

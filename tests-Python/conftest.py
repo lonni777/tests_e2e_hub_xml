@@ -11,7 +11,7 @@ def pytest_configure(config):
     Налаштування pytest перед запуском тестів.
     Видаляє старі HTML-репорти та створює новий звіт з timestamp.
     """
-    # Репорти зберігаємо в корені репозиторію (HUB_login/reports)
+    # Репорти зберігаємо в корені репозиторію (tests_e2e_hub_xml/reports)
     reports_dir = Path(__file__).resolve().parent.parent / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
 

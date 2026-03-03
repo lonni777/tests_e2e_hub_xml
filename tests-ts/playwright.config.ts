@@ -2,7 +2,7 @@ import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 
-// Завантажуємо .env з кореня репозиторію (HUB_login/.env)
+// Завантажуємо .env з кореня репозиторію (tests_e2e_hub_xml/.env)
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const baseURL = process.env.TEST_BASE_URL || process.env.TEST_LOGIN_URL?.replace(/\/user\/login\/?$/, '') || 'https://hubtest.kasta.ua';

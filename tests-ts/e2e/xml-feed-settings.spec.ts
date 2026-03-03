@@ -7,6 +7,7 @@ import { test, expect } from '../fixtures/feed-cleanup';
 import { testConfig } from '../fixtures/env';
 import { LoginPage } from '../pages/LoginPage';
 import { XmlFeedPage } from '../pages/XmlFeedPage';
+import { hasContentPendingSkusForFeed } from '../utils/db-helper';
 
 test.describe('XML-фіди: налаштування завантаження', () => {
   test.beforeEach(async ({ page }) => {
@@ -20,9 +21,27 @@ test.describe('XML-фіди: налаштування завантаження',
 
   test.describe('Завантажити товари з xml (поведінка при увімк/вимк)', () => {
     test('активний фід завантажує новинки', async ({ page, feedCleanup }) => {
-      test.setTimeout(120000);
-      const { testSupplierName, xmlFeedsUrl, testXmlFeedUrl, triggerFeedloadUrl, triggerFeedloadAuth } =
-        testConfig;
+      // Два feed load: перший ставить фото в Kafka, після паузи другий створює SKU з ContentPending (feed_image вже з resized_s3)
+      test.setTimeout(720000); // 12 хв
+      const {
+        testSupplierName,
+        xmlFeedsUrl,
+        testXmlFeedUrl,
+        triggerFeedloadUrl,
+        triggerFeedloadAuth,
+        dbHost,
+        dbName,
+      } = testConfig;
+
+      if (!triggerFeedloadAuth) {
+        test.skip(true, 'потрібен TEST_TRIGGER_FEEDLOAD_AUTH для виклику trigger-feedload');
+        return;
+      }
+      if (!dbHost || !dbName) {
+        test.skip(true, 'потрібні TEST_DB_HOST та TEST_DB_NAME для перевірки ContentPending в БД');
+        return;
+      }
+
       const xmlFeedPage = new XmlFeedPage(page);
 
       await xmlFeedPage.selectSupplier(testSupplierName);
@@ -40,21 +59,61 @@ test.describe('XML-фіди: налаштування завантаження',
       expect(feedId, 'Має бути знайдено feed_id після збереження').toBeTruthy();
       if (feedId) feedCleanup.registerDelete(feedId);
 
-      if (triggerFeedloadAuth) {
-        const feedUrlWithoutFragment = testXmlFeedUrl.replace(/#.*$/, '');
-        const originUrl = `${feedUrlWithoutFragment}#ufeed${feedId}`;
-        const response = await fetch(triggerFeedloadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: triggerFeedloadAuth },
-          body: JSON.stringify({ origin_url: originUrl }),
-        });
+      if (triggerFeedloadAuth && feedId) {
+        // Відкриваємо фід через «Редагувати» і беремо URL з поля — як у БД (нормалізований)
+        await xmlFeedPage.openFeedFromTableById(feedId);
+        await page.waitForTimeout(2000);
+        let originUrl = await xmlFeedPage.getFeedUrlFromInput();
+        if (!originUrl) {
+          await xmlFeedPage.openFeedForEditing(feedId);
+          await page.waitForTimeout(1000);
+          originUrl = await xmlFeedPage.getFeedUrlFromInput();
+        }
+        if (!originUrl.includes('#ufeed')) {
+          originUrl = `${originUrl.replace(/#.*$/, '')}#ufeed${feedId}`;
+        }
+        expect(originUrl, 'Має бути отримано origin_url з форми фіду').toBeTruthy();
+
+        const trigger = (url: string) =>
+          fetch(triggerFeedloadUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: triggerFeedloadAuth },
+            body: JSON.stringify({ origin_url: url }),
+          });
+
+        // 1) Перший feed load: парсинг, фото йдуть в Kafka (SKU не створюються — OFFER_PICTURES_WAIT)
+        let response = await trigger(originUrl);
         expect(
           response.ok,
-          `trigger-feedload має повернути успішний статус, отримано: ${response.status}`,
+          `trigger-feedload (1) має повернути успішний статус, отримано: ${response.status}`,
         ).toBe(true);
-        await page.waitForTimeout(15000);
+
+        // 2) Чекаємо обробки фото в Kafka (feed_image отримує resized_s3), орієнтовно 3–5 хв
+        const kafkaWaitMs = 5 * 60 * 1000; // 5 хв
+        await page.waitForTimeout(kafkaWaitMs);
+
+        // 3) Другий feed load: get-img-entry вже бачить resized_s3 → створюються SKU з ContentPending
+        response = await trigger(originUrl);
+        expect(
+          response.ok,
+          `trigger-feedload (2) має повернути успішний статус, отримано: ${response.status}`,
+        ).toBe(true);
+
+        // 4) Після другого завантаження чекаємо появу хоча б одного SKU з ContentPending
+        const maxAttempts = 12; // до ~3 хв
+        const delayMs = 15000;
+        let hasPending = false;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await page.waitForTimeout(delayMs);
+          hasPending = await hasContentPendingSkusForFeed(feedId);
+          if (hasPending) break;
+        }
+
+        expect(
+          hasPending,
+          'Після другого завантаження фіду має з’явитися хоча б один SKU зі статусом ContentPending (upload_source=feed, не видалений)',
+        ).toBe(true);
       }
-      // TODO: перевірка «товари з'явилися у Новинки» — потрібен URL/локатор сторінки Новинки або інший спосіб (репорт).
     });
 
     test('вимкнення фіда блокує нові завантаження', async ({ page, feedCleanup }) => {

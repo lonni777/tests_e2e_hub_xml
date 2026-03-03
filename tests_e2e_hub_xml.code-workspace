@@ -2,7 +2,7 @@
   "folders": [
     {
       "path": ".",
-      "name": "HUB_login"
+      "name": "tests_e2e_hub_xml"
     }
   ],
   "settings": {}

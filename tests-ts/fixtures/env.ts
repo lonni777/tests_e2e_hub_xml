@@ -16,7 +16,7 @@ export const testConfig = {
   xmlFeedsUrl: process.env.TEST_XML_FEEDS_URL || `${baseUrl}/supplier-content/xml`,
   testXmlFeedUrl:
     process.env.TEST_XML_FEED_URL ||
-    'https://gist.githubusercontent.com/lonni777/dc7d69b7226ce29d807d762bbb054598/raw',
+    'https://gist.githubusercontent.com/lonni777/1eb5d08a1dfd4ad0fdf8666ab78ab5be/raw',
   /** URL фіду з двома варіантами (1-й запит = 1 товар, 2-й = 2 товари). Для тесту «вимкнення фіда блокує нові завантаження». Hub має доступити до URL (для hubtest — публічний або тунель). */
   testXmlFeedTwoVersionsUrl:
     process.env.TEST_XML_FEED_TWO_VERSIONS_URL || 'http://localhost:9877/feed.xml',

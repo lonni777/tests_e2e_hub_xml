@@ -1,5 +1,5 @@
 {
-  "name": "hub-login-tests-ts",
+  "name": "tests_e2e_hub_xml",
   "version": "1.0.0",
   "description": "E2E тести Hub (Playwright + TypeScript)",
   "scripts": {

@@ -16,7 +16,7 @@
 ## Структура
 
 ```
-HUB_login/
+tests_e2e_hub_xml/
 ├── .env              # Секрети (НЕ комітиться)
 ├── .env.example      # Шаблон (комітиться)
 ├── tests-ts/
