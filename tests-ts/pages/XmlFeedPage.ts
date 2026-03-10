@@ -81,6 +81,35 @@ export class XmlFeedPage extends BasePage {
     await checkbox.check();
   }
 
+  async disableUploadItemsCheckbox(): Promise<void> {
+    const container = this.page.locator('div').filter({ hasText: /^Завантажити товари з xml/ }).first();
+    const checkbox = container.locator('input[type="checkbox"]').first();
+    await checkbox.uncheck();
+  }
+
+  async setZeroStockWhenNotFoundCheckbox(checked: boolean): Promise<void> {
+    const container = this.page
+      .locator('div')
+      .filter({ hasText: /^Зняти з продажу товари, які відсутні в фіді/ })
+      .first();
+    const checkbox = container.locator('input[type="checkbox"]').first();
+    const isChecked = await checkbox.isChecked();
+    if (checked && !isChecked) {
+      await checkbox.check();
+    } else if (!checked && isChecked) {
+      await checkbox.uncheck();
+    }
+  }
+
+  async isZeroStockWhenNotFoundChecked(): Promise<boolean> {
+    const container = this.page
+      .locator('div')
+      .filter({ hasText: /^Зняти з продажу товари, які відсутні в фіді/ })
+      .first();
+    const checkbox = container.locator('input[type="checkbox"]').first();
+    return checkbox.isChecked();
+  }
+
   async clickSaveButton(): Promise<void> {
     await this.page.locator(xmlFeedLocators.saveButton).click();
     await this.page.waitForTimeout(1000);

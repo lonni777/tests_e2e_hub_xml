@@ -88,3 +88,83 @@ export async function hasContentPendingSkusForFeed(feedId: string): Promise<bool
     await client.end();
   }
 }
+
+export type SkuInfo = {
+  id: number;
+  supplier_id: number;
+  unique_sku_id: string;
+  stock: number;
+  upload_source: string | null;
+  feed_id: string | null;
+  is_deleted: boolean;
+};
+
+/**
+ * Отримати SKU по offer_id з XML-фіда (unique_sku_id = 'rzid_' || offer_id).
+ * Використовується в тестах zero_stock_when_not_found для перевірки стоку та джерела завантаження.
+ */
+export async function getSkuByOfferId(offerId: string): Promise<SkuInfo | null> {
+  const client = createClient();
+
+  try {
+    await client.connect();
+    const uniqueId = `rzid_${offerId}`;
+    const result = await client.query<SkuInfo>(
+      `
+        SELECT id,
+               supplier_id,
+               unique_sku_id,
+               stock,
+               upload_source,
+               feed_id,
+               is_deleted
+        FROM supplier_sku
+        WHERE unique_sku_id = $1
+      `,
+      [uniqueId],
+    );
+
+    if (!result.rowCount || result.rowCount === 0) {
+      return null;
+    }
+    return result.rows[0];
+  } finally {
+    await client.end();
+  }
+}
+
+export type FeedSettingsUpdate = {
+  sp_feed_enabled?: boolean;
+  update_stock?: boolean;
+  zero_stock_when_not_found?: boolean;
+  is_active?: boolean;
+};
+
+/**
+ * Оновити налаштування фіда в таблиці feed по feed_id.
+ * Використовується в тестах zero_stock_when_not_found для виставлення потрібної комбінації прапорців.
+ */
+export async function updateFeedSettings(
+  feedId: string,
+  settings: FeedSettingsUpdate,
+): Promise<void> {
+  const keys = Object.keys(settings) as (keyof FeedSettingsUpdate)[];
+  if (keys.length === 0) return;
+
+  const client = createClient();
+
+  try {
+    await client.connect();
+    const setFragments = keys.map((key, idx) => `${key} = $${idx + 2}`);
+    const values = keys.map((key) => settings[key]);
+
+    await client.query(
+      `UPDATE feed
+       SET ${setFragments.join(', ')}
+       WHERE feed_id = $1`,
+      [feedId, ...values],
+    );
+  } finally {
+    await client.end();
+  }
+}

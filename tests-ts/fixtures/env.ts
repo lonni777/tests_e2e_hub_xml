@@ -44,6 +44,20 @@ export const testConfig = {
     .map((s) => s.trim())
     .filter(Boolean),
 
+  // Zero stock when offer is not in feed (Парфюмс, Parfums feed R3S0)
+  /** URL тестового фіда Парфюмс для zero_stock_when_not_found (2 офера, target + control) */
+  testZeroStockFeedUrl:
+    process.env.TEST_ZERO_STOCK_FEED_URL ||
+    'https://gist.githubusercontent.com/Ilona-Karpenko/0113c077af7763e9ded08c98e5231e7d/raw',
+  /** Ідентифікатор фіда в HUB (feed_id) для Parfums: R3S0 */
+  testZeroStockFeedId: process.env.TEST_ZERO_STOCK_FEED_ID || 'R3S0',
+  /** Офер, який будемо «зникати» з фіда і повертати (target) */
+  testZeroStockTargetOfferId:
+    process.env.TEST_ZERO_STOCK_TARGET_OFFER_ID || '02.02.2026_2',
+  /** Офер-контроль, який завжди присутній у фіді (control) */
+  testZeroStockControlOfferId:
+    process.env.TEST_ZERO_STOCK_CONTROL_OFFER_ID || '02.02.2026_3',
+
   /** API trigger-feedload (POST) — запуск завантаження фіду по требованию. Для тестів налаштувань. */
   triggerFeedloadUrl:
     process.env.TEST_TRIGGER_FEEDLOAD_URL || `${baseUrl}/api/admin-tools/trigger-feedload`,
